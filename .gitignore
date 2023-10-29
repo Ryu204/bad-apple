@@ -1,0 +1,9 @@
+# vscode folder and common extension
+.cache/*
+.vscode/*
+
+# binary folder
+build/*
+
+# local settings
+CMakeUserPresets.json

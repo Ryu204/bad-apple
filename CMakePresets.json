@@ -1,0 +1,19 @@
+{
+    "version" : 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "binaryDir": "build",
+            "cacheVariables": {
+                "USER_DEFINED_ADDITIONAL_FLAGS": "--Werror;--out-fmt-ihx;"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ]
+}
