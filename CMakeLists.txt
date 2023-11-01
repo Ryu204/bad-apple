@@ -13,8 +13,10 @@ endif()
 # Grab all *.c file in source folder to compile
 set(${PROJECT_NAME}_SOURCE 
     "src/main.c"
-    "src/draw.h"
-    "src/type.h")
+    "src/type.h"
+    "src/monitor.h"
+    "src/monitor.c"
+    "src/common.h")
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
 
 
