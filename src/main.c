@@ -9,8 +9,9 @@ void main() {
     while (1) {
         buffer_type buffer = mnt_buffer();
         memset(buffer, 0, 64);
-        vga_draw_square(buffer, 1, 2, 2, 3, 5);
-        vga_draw_circle(buffer, 6, 6, 7, 1);
+        // vga_draw_square(buffer, 1, 0, 2, 5, 1);
+        // vga_draw_circle(buffer, 6, 6, 5, 8);
+        vga_draw_lol(buffer);
         mnt_swap();
         P2_1 = !P2_1; 
     }

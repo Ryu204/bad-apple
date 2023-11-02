@@ -26,7 +26,9 @@ set(${PROJECT_NAME}_SOURCE
     "src/monitor.c"
     "src/common.h"
     "src/vga.h"
-    "src/vga.c")
+    "src/vga.c"
+    "src/receive.h"
+    "src/receive.c")
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
 
 
