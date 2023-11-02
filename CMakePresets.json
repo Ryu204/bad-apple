@@ -5,15 +5,9 @@
             "name": "base",
             "binaryDir": "build",
             "cacheVariables": {
-                "USER_DEFINED_ADDITIONAL_FLAGS": "--Werror;--out-fmt-ihx;--model-medium",
-                "USER_DEFINED_ADDITIONAL_LINKER_FLAGS" : "--model-medium"
-            }
-        },
-        {
-            "name": "debug",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "USER_DEFINED_ADDITIONAL_FLAGS": "--Werror;--out-fmt-ihx;--opt-code-speed",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE" : "Release"
             }
         }
     ]

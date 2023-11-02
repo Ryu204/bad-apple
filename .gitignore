@@ -4,6 +4,3 @@
 
 # binary folder
 build/*
-
-# local settings
-CMakeUserPresets.json

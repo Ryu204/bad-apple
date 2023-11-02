@@ -6,18 +6,20 @@
 #define LATCH_PIN   P3_5
 #define ROW_SBIT    P0
 
-#define MULTIPLIER  40
-#define TL_VAL      (0xFF - 250)
+#define COLOR_CNT   8
+#define MULTIPLIER  10
+#define TL_VAL      0x00
 
-ui8 buffer[128];
+ui8 __pdata buffer[128];
 ui8 index_current = 0;
+int pass = 0;
 
-void process_row(ui8 start, ui8* res) {
+inline ui8 process_row(ui8 start) {
+    ui8 res = 0xFF;
     for (ui8 i = 0; i < 8; ++i)
-        if (buffer[start + 7 - i])
-            (*res) &= ~(1 << i);
-        else
-            (*res) |= (1 << i);
+        if (buffer[start + 7 - i] >= pass)
+            res &= ~(1 << i);
+    return res;
 }
 
 void mnt_init() {
@@ -41,20 +43,28 @@ buffer_type mnt_buffer() {
     return buffer + (1 - index_current) * 64;
 }
 
-void mnt_display() {
-    ui8 index = (index_current + 1) * 64;
-    ui8 row_data = 0;
-    for (ui8 r = 0; r < 8; ++r) {
+inline void mnt_display() {
+    P2_0 = !P2_0;
+    pass = pass == COLOR_CNT ? 1 : pass + 1;
+    ui8 index = index_current == 0 ? 56 : 120;
+    
+    ui8 row_data = process_row(index);
+    DATA_PIN = 1;
+    ROW_SBIT = 0xFF;
+    CLOCK_PIN = 1; CLOCK_PIN = 0;
+    LATCH_PIN = 1; ROW_SBIT = row_data; LATCH_PIN = 0;
+    DATA_PIN = 0;
+
+    for (ui8 r = 0; r < 7; ++r) {
         index -= 8;
-        process_row(index, &row_data);
-        DATA_PIN = r == 0;
+        row_data = process_row(index);
         ROW_SBIT = 0xFF;
         CLOCK_PIN = 1; CLOCK_PIN = 0;
         LATCH_PIN = 1; ROW_SBIT = row_data; LATCH_PIN = 0;
     }
-    for (ui8 i = 0; i < 50; ++i)
+    for (ui8 i = 0; i < 50; ++i);
     CLOCK_PIN = 1; CLOCK_PIN = 0;
-    LATCH_PIN = 1; ROW_SBIT = row_data; LATCH_PIN = 0;
+    LATCH_PIN = 1; LATCH_PIN = 0;
 }
 
 unsigned int counter = 0;

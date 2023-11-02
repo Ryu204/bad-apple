@@ -1,5 +1,5 @@
 # To initialize CMake use: 
-# cmake --preset=debug -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic 
+# cmake --preset=rel -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic 
 
 cmake_minimum_required(VERSION 3.20)
 

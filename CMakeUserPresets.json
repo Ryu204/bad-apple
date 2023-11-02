@@ -1,0 +1,13 @@
+{
+    "version" : 6,
+    "configurePresets": [
+        {
+            "name": "local",
+            "inherits" : "base",
+            "generator": "MinGW Makefiles",
+            "cacheVariables": {
+                "USER_DEFINED_ADDITIONAL_DIR" : "C:/Program Files/SDCC/include"
+            }
+        }
+    ]
+}
