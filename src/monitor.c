@@ -9,24 +9,18 @@
 #define MULTIPLIER  40
 #define TL_VAL      (0xFF - 250)
 
-__pdata ui8 buffer_1[64] = {
-    0, 1, 1, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 1, 0, 1, 0
-};
-__pdata ui8 buffer_2[64];
+ui8 buffer[128];
 ui8 index_current = 0;
 
-void process_row(ui8* data, ui8* res) {
+void process_row(ui8 start, ui8* res) {
     for (ui8 i = 0; i < 8; ++i)
-        if (data[7 - i])
+        if (buffer[start + 7 - i])
             (*res) &= ~(1 << i);
         else
             (*res) |= (1 << i);
 }
 
 void mnt_init() {
-    // Set initial monitor screen
-    memset(buffer_2, 1, 64);
     // Config Timer0
     EA = 1;
     ET0 = 1;
@@ -43,16 +37,16 @@ void mnt_swap() {
     index_current = 1 - index_current;
 }
 
-ui8* mnt_buffer() {
-    return index_current == 0 ? buffer_1 : buffer_2;
+buffer_type mnt_buffer() {
+    return buffer + (1 - index_current) * 64;
 }
 
 void mnt_display() {
-    ui8* ptr = mnt_buffer() + index_current * 64 + 64;
+    ui8 index = (index_current + 1) * 64;
     ui8 row_data = 0;
     for (ui8 r = 0; r < 8; ++r) {
-        ptr -= 8;
-        process_row(ptr, &row_data);
+        index -= 8;
+        process_row(index, &row_data);
         DATA_PIN = r == 0;
         ROW_SBIT = 0xFF;
         CLOCK_PIN = 1; CLOCK_PIN = 0;

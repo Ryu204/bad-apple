@@ -12,7 +12,7 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")          # lib
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".lib")          # .so
 set(CMAKE_IMPORT_LIBRARY_PREFIX )
 set(CMAKE_IMPORT_LIBRARY_SUFFIX )
-set(CMAKE_EXECUTABLE_SUFFIX ".ihx")          # intel hex file
+set(CMAKE_EXECUTABLE_SUFFIX ".hex")          # intel hex file
 set(CMAKE_LINK_LIBRARY_SUFFIX ".lib")
 set(CMAKE_DL_LIBS "")
 
