@@ -31,7 +31,6 @@ set(${PROJECT_NAME}_SOURCE
     "src/receive.c")
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
 
-
 # Local directories
 if (USER_DEFINED_ADDITIONAL_DIR)
     message("-- Additional directories: ${USER_DEFINED_ADDITIONAL_DIR}")

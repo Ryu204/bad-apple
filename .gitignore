@@ -4,3 +4,12 @@
 
 # binary folder
 build/*
+
+# local config files
+CMakeUserPresets.json
+
+# python virtual env
+src/server/.venv/*
+
+# cmake server build files
+src/server/build/*

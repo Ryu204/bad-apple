@@ -6,7 +6,7 @@
 #define LATCH_PIN   P3_5
 #define ROW_SBIT    P0
 
-#define COLOR_CNT   8
+#define COLOR_CNT   4
 #define MULTIPLIER  10
 #define TL_VAL      0x00
 
@@ -27,7 +27,7 @@ void mnt_init() {
     EA = 1;
     ET0 = 1;
     TH0 = (ui8)TL_VAL; TL0 = 0;
-    TMOD = 0x02;
+    TMOD |= 0x02; // 8 bit auto reload
     TR0 = 1;
 
     CLOCK_PIN = 0;
@@ -44,7 +44,6 @@ buffer_type mnt_buffer() {
 }
 
 inline void mnt_display() {
-    P2_0 = !P2_0;
     pass = pass == COLOR_CNT ? 1 : pass + 1;
     ui8 index = index_current == 0 ? 56 : 120;
     
