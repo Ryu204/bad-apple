@@ -2,6 +2,9 @@
 .cache/*
 .vscode/*
 
+# python virtual env
+.venv/*
+
 # binary folder
 build/*
 

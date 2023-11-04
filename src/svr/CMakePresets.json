@@ -9,7 +9,7 @@
             "name": "base",
             "binaryDir": "build",
             "cacheVariables": {
-                
+                "CMAKE_EXPORT_COMPILE_COMMANDS" : "TRUE"
             }
         },
         {

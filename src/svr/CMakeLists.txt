@@ -12,10 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 SET(${PROJECT_NAME}_SOURCE 
     "src/main.cpp"
-    "src/ext/serial.hpp"
-    "src/ext/serial.cpp"
     "src/port.hpp"
     "src/port.cpp"
 )
 
+find_package(cserialport REQUIRED)
+
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
+target_link_libraries(${PROJECT_NAME} PUBLIC cserialport)

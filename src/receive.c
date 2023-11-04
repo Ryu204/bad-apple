@@ -3,7 +3,6 @@
 
 buffer_type rcv_buffer;
 ui8 buffer_index;
-ui8 done;
 
 void rcv_init() {
     EA = 1;
@@ -19,7 +18,6 @@ void rcv_on(buffer_type buf) {
     SCON |= 0x10;
     rcv_buffer = buf;
     buffer_index = 0;
-    done = 0;
 }
 
 void rcv_off() {
@@ -27,13 +25,10 @@ void rcv_off() {
 }
 
 ui8 rcv_done() {
-    return done;
+    return buffer_index >= 64;
 }
 
-void internal_write_byte() __interrupt SI0_VECTOR {
+void internal_write_byte() __interrupt (SI0_VECTOR) {
     rcv_buffer[buffer_index++] = SBUF;
-    P2 = SBUF;
-    if (buffer_index == 64)
-        done = 1;
     RI = 0;
 }
