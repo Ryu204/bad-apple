@@ -12,8 +12,7 @@ void init() {
 }
 
 void main() {
-    mnt_init();
-    rcv_init();
+    init();
     while (1) {
         buffer_type buffer = mnt_buffer();
         memset(buffer, 0, 64);

@@ -20,7 +20,7 @@ void rcv_set_buffer(buffer_type buf) {
 }
 
 ui8 rcv_done() {
-    return buffer_index >= 64;
+    return buffer_index > 63;
 }
 
 void rcv_request() {
@@ -31,7 +31,7 @@ void rcv_request() {
 }
 
 void internal_write_byte() __interrupt (SI0_VECTOR) {
-    if (RI == 0)
+    if (RI == 0 || buffer_index > 63)
         return;
     rcv_buffer[buffer_index++] = SBUF;
     RI = 0;

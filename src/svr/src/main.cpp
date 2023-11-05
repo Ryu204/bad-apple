@@ -49,10 +49,5 @@ int main(int argc, char* argv[]) {
         std::cout << "Received request" << std::endl;
         port.send(data, 64, usecs);
         std::cout << "Sent frame " << frame << std::endl;
-        if (frame == 100) {
-            auto total_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
-            std::cout << "FPS: " << 100.F / total_time << std::endl;
-            break;
-        }
     }
 }
