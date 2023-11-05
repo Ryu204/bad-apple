@@ -1,13 +1,14 @@
 # To initialize CMake use: 
 # cmake --preset=rel -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic 
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.23)
 
 project(bad-apple C)
 
 include(cmake/sdcc.cmake)
 
 # Additional compile flags for each preset
+add_compile_options("--std-c2x")
 if (USER_DEFINED_ADDITIONAL_FLAGS)
     message("-- Additional compile flags set: ${USER_DEFINED_ADDITIONAL_FLAGS}")
     add_compile_options(${USER_DEFINED_ADDITIONAL_FLAGS})
@@ -30,7 +31,6 @@ set(${PROJECT_NAME}_SOURCE
     "src/receive.h"
     "src/receive.c")
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
-
 
 # Local directories
 if (USER_DEFINED_ADDITIONAL_DIR)

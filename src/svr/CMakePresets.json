@@ -1,0 +1,23 @@
+{
+    "version" : 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor" : 20
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "binaryDir": "build",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS" : "TRUE"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}

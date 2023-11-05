@@ -1,0 +1,5 @@
+# binary folder
+build/*
+.cache/*
+# local config
+CMakeUserPresets.json

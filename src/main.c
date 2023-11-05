@@ -1,18 +1,24 @@
 #include "common.h"
 #include "monitor.h"
 #include "vga.h"
-
+#include "receive.h"
 #include <string.h>
 
-void main() {
+void init() {
     mnt_init();
+    rcv_init();
+    PT0 = 0;
+    PS = 1;
+}
+
+void main() {
+    init();
     while (1) {
         buffer_type buffer = mnt_buffer();
         memset(buffer, 0, 64);
-        // vga_draw_square(buffer, 1, 0, 2, 5, 1);
-        // vga_draw_circle(buffer, 6, 6, 5, 8);
-        vga_draw_lol(buffer);
+        rcv_set_buffer(buffer);
+        rcv_request();
+        while (!rcv_done());
         mnt_swap();
-        P2_1 = !P2_1; 
     }
 }
