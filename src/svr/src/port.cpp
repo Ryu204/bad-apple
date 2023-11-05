@@ -48,6 +48,10 @@ auto Port::open(const char* name, std::size_t baud) -> bool {
     return m_serial_port.isOpen();
 }
 
+auto Port::close() -> void {
+    m_serial_port.close();
+}
+
 auto Port::send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> void {
     m_is_waiting.wait(true);
     for (int i = 0; i < num_bytes; ++i) {
