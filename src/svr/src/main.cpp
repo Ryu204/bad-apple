@@ -1,3 +1,4 @@
+#include <bits/chrono.h>
 #include <iostream>
 #include <cstdint>
 #include <format>
@@ -39,11 +40,19 @@ int main(int argc, char* argv[]) {
         0,1,1,8,8,8,1,1,
         0,0,1,1,1,1,1,0
     };
+    std::size_t frame = 0;
+    auto start = std::chrono::steady_clock::now();
     while (true) {
-        for (int i = 0; i < 64; ++i) {
-            port.send(data + i, 1);
-            std::this_thread::sleep_for(std::chrono::microseconds(usecs));
+        frame++;
+        if (port.wait() != 0xFF)
+            break;
+        std::cout << "Received request" << std::endl;
+        port.send(data, 64, usecs);
+        std::cout << "Sent frame " << frame << std::endl;
+        if (frame == 100) {
+            auto total_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
+            std::cout << "FPS: " << 100.F / total_time << std::endl;
+            break;
         }
-        std::cout << '.' << std::flush;
     }
 }

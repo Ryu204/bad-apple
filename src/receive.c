@@ -9,26 +9,30 @@ void rcv_init() {
     ES = 1;
     TMOD |= 0x20;
     PCON |= SMOD;
-    SCON |= 0x40;
+    SCON |= 0x50;
     TH1 = 250;
     TR1 = 1;
 }
 
-void rcv_on(buffer_type buf) {
-    SCON |= 0x10;
+void rcv_set_buffer(buffer_type buf) {
     rcv_buffer = buf;
     buffer_index = 0;
-}
-
-void rcv_off() {
-    SCON &= ~0x10;
 }
 
 ui8 rcv_done() {
     return buffer_index >= 64;
 }
 
+void rcv_request() {
+    TI = 0;
+    SBUF = 0xFF;
+    while (TI == 0);
+    TI = 0;
+}
+
 void internal_write_byte() __interrupt (SI0_VECTOR) {
+    if (RI == 0)
+        return;
     rcv_buffer[buffer_index++] = SBUF;
     RI = 0;
 }
