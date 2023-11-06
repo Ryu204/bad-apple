@@ -26,4 +26,6 @@ find_package(OpenCV REQUIRED core imgcodecs videoio highgui)
 find_package(SFML 2.6 REQUIRED window)
 
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
-target_link_libraries(${PROJECT_NAME} PUBLIC cserialport ${OpenCV_LIBS} sfml-window)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${CSerialPort_LIBRARY} ${OpenCV_LIBS} sfml-window)
+# Port dependency does not provide library target :skull:
+target_include_directories(${PROJECT_NAME} PUBLIC ${CSerialPort_INCLUDE_DIR})
