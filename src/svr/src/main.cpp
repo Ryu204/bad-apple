@@ -67,13 +67,14 @@ void init_opengl() {
     }
     glDeleteShader(vshader);
     glDeleteShader(fshader);
+    glUseProgram(shader_program);
 
     constexpr float vert[] = {
         // Position(x,y) - TexCoord(x, y)
-        -0.5F,  0.5F,   0.F,    0.F,
-        0.5F,   0.5F,   1.F,    0.F, 
-        0.5F,   -0.5F,  1.F,    1.F,
-        -0.5F,  -0.5F,  0.F,    1.F
+        -1.0F,  1.F,   0.F,    0.F,
+        1.F,   1.F,   1.F,    0.F, 
+        1.F,   -1.F,  1.F,    1.F,
+        -1.F,  -1.F,  0.F,    1.F
     };
     const unsigned int indices[] = {
         0, 1, 2, 0, 2, 3
@@ -118,8 +119,7 @@ bool init(int argc, char* argv[]) {
     }
     std::cout << std::format("Opened device {}", device) << std::endl;
     
-    video = std::make_unique<Video>(VType::FILE, "rsc/bad-apple.mp4");
-    video->set_size(PREVIEW_WIDTH, PREVIEW_WIDTH);
+    video = std::make_unique<Video>(VType::CAMERA, nullptr);
 
     init_opengl();
 
@@ -143,6 +143,8 @@ void draw_result() {
     glBindVertexArray(VAO);
     glUseProgram(shader_program);
     glUniform1i(glGetUniformLocation(shader_program, "image_texture"), 0);
+    float image_size[] = {(float)frame_data.cols, (float)frame_data.rows};
+    glUniform2fv(glGetUniformLocation(shader_program, "image_size"), 1, image_size);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -159,7 +161,7 @@ bool display_result() {
                 break;
         }
     }
-    glClearColor(1, 0, 0, 1);
+    glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     draw_result();
     window->display();

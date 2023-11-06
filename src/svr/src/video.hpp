@@ -14,7 +14,7 @@ struct Video {
         Video(VType type, const char* name);
         ~Video();
         Frame get();
-        void set_size(std::size_t width, std::size_t height);
+        void get_size(std::size_t* width, std::size_t* height);
     private:
         cv::VideoCapture m_video;
 };

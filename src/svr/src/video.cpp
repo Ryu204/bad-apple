@@ -24,13 +24,18 @@ Video::~Video() {
 }
 
 Video::Frame Video::get() {
-    cv::Mat frame;
-    m_video.read(frame);
-    return frame;
+    cv::Mat input;
+    m_video.read(input);
+
+    int size = std::min(input.cols, input.rows);
+    int x = (input.cols - size) / 2;
+    int y = (input.rows - size) / 2;
+    cv::Rect roi(x, y, size, size);
+    cv::Mat cropped = input(roi).clone();
+    return cropped;
 }
 
-void Video::set_size(std::size_t width, std::size_t height) {
-    m_video.set(cv::CAP_PROP_FRAME_WIDTH, width);
-    m_video.set(cv::CAP_PROP_FRAME_HEIGHT, height);
+void Video::get_size(std::size_t* width, std::size_t* height) {
+    *width = m_video.get(cv::CAP_PROP_FRAME_WIDTH);
+    *height = m_video.get(cv::CAP_PROP_FRAME_HEIGHT);
 }
-
