@@ -4,21 +4,23 @@ out vec4 FragColor;
 in vec2 texCoord;
 uniform sampler2D image_texture;
 uniform vec2 image_size;
+uniform float threshold[4];
 
-float diff(vec4 a, vec4 b) {
-    return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z);
+layout(std430, binding = 0) buffer Output{
+    int data[64];
+};
+
+void update_data(float gray) {
+    int x = int(texCoord.x * 8);
+    int y = int(texCoord.y * 8);
+    int i = int(clamp(y * 8 + x, 0, 63));
+    data[i] = int(max(4 * gray, data[i]));
 }
 
-vec4 sample_offset(vec2 offset) {
-    return texture(image_texture, clamp(texCoord + offset, 0.0, 1.0));
-}
-
-void main()
-{
-    vec2 incr = vec2(1.0 / image_size.x, 1.0 / image_size.y);
+void main() {
     vec4 color = texture(image_texture, texCoord);
-    float value = diff(sample_offset(vec2(0, incr.y)), sample_offset(vec2(0, -incr.y)))
-        + diff(sample_offset(vec2(incr.x, 0)), sample_offset(vec2(-incr.x, 0)));
-    
-    FragColor = value.xxxx; FragColor.a = 1.0;
+    float gray = color.r * 0.6 + color.g * 0.3 + color.b * 0.1;
+    gray = gray < threshold[0] ? 0 : gray < threshold[1] ? 0.25 : gray < threshold[2] ? 0.5 : gray < threshold[3] ? 0.75 : 1;
+    FragColor = gray.xxxx; FragColor.a = 1.0;
+    update_data(gray);
 }

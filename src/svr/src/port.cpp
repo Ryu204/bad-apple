@@ -5,6 +5,7 @@
 #include <iostream>
 #include <functional>
 #include <mutex>
+#include <ratio>
 #include <string>
 #include <cassert>
 #include <thread>
@@ -32,7 +33,8 @@ namespace detail {
 auto Port::open(const char* name, std::size_t baud) -> bool {
     std::cout << "Opening port " << name << std::endl;
     m_serial_port.init(name, baud);
-    m_serial_port.open();
+    if (!m_serial_port.open()) 
+        return false;
 
     m_listener = std::make_unique<detail::ReadListener>(name, &m_serial_port);
     m_listener->set_callback([this](itas109::CSerialPort* port, unsigned int num_butes){
@@ -56,13 +58,24 @@ auto Port::send(const void* start, std::size_t num_bytes, std::size_t delay_micr
     m_is_waiting.wait(true);
     for (int i = 0; i < num_bytes; ++i) {
         m_serial_port.writeData((const char*)start + i, 1);
-        std::this_thread::sleep_for(std::chrono::microseconds(delay_microseconds));
+        // std::this_thread::sleep_for(std::chrono::microseconds(delay_microseconds));
+        auto time = std::chrono::steady_clock::now();
+        while (true) {
+        double past = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - time).count();
+        if (past >= delay_microseconds)
+            break;
+        }
     }
 }
 
 auto Port::wait(float timeout) -> std::uint8_t {
     m_is_waiting.store(true);
-    while (!m_received.load());
+    auto time = std::chrono::steady_clock::now();
+    while (!m_received.load()) {
+        double past = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - time).count();
+        if (past >= timeout)
+            return 0xFE;
+    }
     m_is_waiting.store(false);
     auto res = m_value.load();
     m_received.store(false);

@@ -1,8 +1,10 @@
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <cstdint>
 #include <format>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <chrono>
@@ -11,19 +13,26 @@
 #include "video.hpp"
 #include "ext/include/glad/glad.h"
 #include <SFML/Window.hpp>
+#include <SFML/System.hpp>
 
 using namespace std::chrono_literals;
 
 Port port;
 std::size_t baud, usecs;
+float threshold[4];
 char* device;
+std::string resource;
 std::unique_ptr<Video> video;
 std::size_t rendered_frames;
 std::unique_ptr<sf::Window> window;
-unsigned int VBO, VAO, EBO, original_texture;
+unsigned int VBO, VAO, EBO, original_texture, SSBO;
+std::array<std::uint8_t, 64> data, data_buffer;
+std::array<int, 64> data_big;
 unsigned int shader_program;
 constexpr std::size_t PREVIEW_WIDTH = 640;
 Video::Frame frame_data;
+
+std::recursive_mutex matrix_mutex, window_mutex;
 
 unsigned int create_shader(GLenum shader_type, const char* filename) {
     unsigned int result = glCreateShader(shader_type);
@@ -36,8 +45,7 @@ unsigned int create_shader(GLenum shader_type, const char* filename) {
     int ok;
     char infoLog[512];
     glGetShaderiv(result, GL_COMPILE_STATUS, &ok);
-    if(!ok)
-    {
+    if(!ok) {
         glGetShaderInfoLog(result, 512, NULL, infoLog);
         std::cerr << std::format("Cannot compile shader in \"{}\":\n{}", filename, infoLog) << std::endl;
     }
@@ -68,6 +76,7 @@ void init_opengl() {
     glDeleteShader(vshader);
     glDeleteShader(fshader);
     glUseProgram(shader_program);
+    glUniform1fv(glGetUniformLocation(shader_program, "threshold"), 4, threshold);
 
     constexpr float vert[] = {
         // Position(x,y) - TexCoord(x, y)
@@ -81,6 +90,7 @@ void init_opengl() {
     };
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
+    glGenBuffers(1, &SSBO);
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
@@ -88,30 +98,36 @@ void init_opengl() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert), vert, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 64 * sizeof(int), nullptr, GL_DYNAMIC_COPY);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    glGenTextures(1, &original_texture);
+    glBindTexture(GL_TEXTURE_2D, original_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glGenTextures(1, &original_texture);
-    glBindTexture(GL_TEXTURE_2D, original_texture);
 }
 
 bool init(int argc, char* argv[]) {
-    if (argc != 4) {
-        std::cerr << "Invalid arguments. Options:\nserver <device> <baudrate> <wait_time_us>" << std::endl;
+    if (argc != 9) {
+        std::cerr << "Invalid arguments. Argument list (9):\nserver <device> <baudrate> <wait_time_us> <brightness_threshold_1/2/3/4> <-f<filename>/-c>" << std::endl;
         return false;
     }
 
     device = argv[1];
     baud = std::stoi(std::string(argv[2]));
     usecs = std::stoi(std::string(argv[3]));
+    threshold[0] = std::stof(std::string(argv[4]));
+    threshold[1] = std::stof(std::string(argv[5]));
+    threshold[2] = std::stof(std::string(argv[6]));
+    threshold[3] = std::stof(std::string(argv[7]));
+    resource = argv[8];
     std::cout << "Arguments are valid, process to run..." << std::endl;
     if (!port.open(device, baud)) {
         std::cerr << std::format("Cannot open device {}", device) << std::endl;
@@ -119,7 +135,17 @@ bool init(int argc, char* argv[]) {
     }
     std::cout << std::format("Opened device {}", device) << std::endl;
     
-    video = std::make_unique<Video>(VType::CAMERA, nullptr);
+    if (resource.starts_with("-c")) {
+        video = std::make_unique<Video>(VType::CAMERA, nullptr);
+    }
+    else if (resource.starts_with("-f")) {
+        resource.erase(0, 2);
+        video = std::make_unique<Video>(VType::FILE, resource.c_str());
+    }
+    else {
+        std::cout << "Filename or camera use was not specified, use -f or -c" << std::endl;
+        return false;
+    }
 
     init_opengl();
 
@@ -127,25 +153,46 @@ bool init(int argc, char* argv[]) {
 }
 
 bool fetch_image() {
-    cv::waitKey(10); // Dummy to keep windows active
     frame_data = video->get();
     if (frame_data.empty())
         return false;
-    cv::imshow(std::string("lol"), frame_data);
+    cv::imshow(std::string("Video capture"), frame_data);
+    cv::waitKey(10); // Dummy to keep windows active
     return true;
 }
 
 void draw_result() {
-    // cv::cvtColor(frame_data, frame_data, cv::COLOR_BGR2RGB);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame_data.cols, frame_data.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, frame_data.ptr());
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindVertexArray(VAO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
     glUseProgram(shader_program);
     glUniform1i(glGetUniformLocation(shader_program, "image_texture"), 0);
     float image_size[] = {(float)frame_data.cols, (float)frame_data.rows};
     glUniform2fv(glGetUniformLocation(shader_program, "image_size"), 1, image_size);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void process_image() {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+    std::fill(data_big.begin(), data_big.end(), 0);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 64 * sizeof(int), data_big.data());
+    draw_result();
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 64 * sizeof(int), data_big.data());
+    {
+        std::lock_guard lock(matrix_mutex);
+        for (int i = 0; i < 64; ++i)
+            data_buffer[i] = static_cast<std::uint8_t>(data_big[i]);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
+        std::cout << "Data will be sent:\n";
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 8; ++j)
+                std::cout << data_big[i* 8 + j] << '\t';
+            std::cout << std::endl;
+        }
+    }
 }
 
 bool display_result() {
@@ -163,7 +210,7 @@ bool display_result() {
     }
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
-    draw_result();
+    process_image();
     window->display();
     return true;
 }
@@ -175,8 +222,44 @@ int main(int argc, char* argv[]) {
         }
         auto start = std::chrono::steady_clock::now();
         
+        auto port_handle = [&]() {
+            std::cout << "Starting communication, waiting for request signal..." << std::endl;
+            while (true) {
+                rendered_frames++;
+                auto signal = port.wait(10);
+                if (signal == 0xFE) {
+                    std::cout << "No signal from MCU, stop sending" << std::endl;
+                    break;
+                }
+                if (signal != 0xFF) {
+                    std::cout << "Terminate signal from MCU, stop sending" << std::endl;
+                    break;
+                }
+                {
+                    std::lock_guard lock(window_mutex);
+                    if (window.get() == nullptr || !window->isOpen()) {
+                        std::cout << "Window was closed, stop sending" << std::endl;
+                        break;
+                    }
+                }
+                std::cout << "Received request" << std::endl;
+                {
+                    std::lock_guard lock(matrix_mutex);
+                    data = data_buffer;
+                }
+                port.send(data.data(), 64, usecs);
+                std::cout << "Sent frame " << rendered_frames << std::endl;
+            }
+        };
+
+        std::thread port_communication{port_handle};
+
         while (true) {
-            bool ok = fetch_image() && display_result() && !sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Escape);
+            bool ok = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Escape) == false && fetch_image();
+            {
+                std::lock_guard lock{window_mutex};
+                ok = ok && display_result();
+            }
             if (!ok)
                 break;
         }
@@ -205,6 +288,7 @@ int main(int argc, char* argv[]) {
         video.reset();
         window.reset();
         cv::destroyAllWindows();
+        port_communication.join();
         return 0;
     }
     catch (std::exception& e) {
