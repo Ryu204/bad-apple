@@ -28,7 +28,7 @@ inline void init_display() {
     ET0 = 1;                // Enable timer0
     TH0 = 0xFF - DPL_INT;   // Set interupt interval
     TMOD |= 0x02;           // timer0 8-bit auto reload
-    TR0 = 1;                // Start timer0s
+    TR0 = 1;                // Start timer0
 
     CLOCK_PIN = 0;
     LATCH_PIN = 0;
@@ -107,7 +107,7 @@ inline void init_uart() {
     TMOD |= 0x20;   // Set timer1 to 8-bit auto reload
     PCON |= SMOD;   // Double baudrate
     SCON |= 0x50;   // Config serial port mode
-    TH1 = 250;      // 19200 Hz by double-speed (6T) and double baudrate
+    TH1 = 250;      // Baudrate 19200, by double-speed (6T) and double baudrate
     TR1 = 1;        // Start timer1
 }
 
@@ -125,7 +125,7 @@ inline void request_line(ui8* buffer) {
 }
 
 void line_receive_listener() __interrupt (SI0_VECTOR) {
-    if (RI == 0) // If the interrupt was sending, not receiving
+    if (RI == 0) // If the interrupt was by sending, not receiving
         return;
     line_location[line_index++] = SBUF;
     RI = 0;
