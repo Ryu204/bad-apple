@@ -30,7 +30,7 @@ namespace detail {
 struct Port {
         auto open(const char* name, std::size_t baud) -> bool;
         auto close() -> void;
-        auto send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> void;
+        auto send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> bool;
         auto wait(float timeout = 0.F) -> std::uint8_t;
     private:
         itas109::CSerialPort m_serial_port;

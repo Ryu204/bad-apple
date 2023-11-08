@@ -227,7 +227,7 @@ int main(int argc, char* argv[]) {
             while (true) {
                 rendered_frames++;
                 auto signal = port.wait(10);
-                if (signal == 0xFE) {
+                if (signal == 0xFD) {
                     std::cout << "No signal from MCU, stop sending" << std::endl;
                     break;
                 }
@@ -247,7 +247,11 @@ int main(int argc, char* argv[]) {
                     std::lock_guard lock(matrix_mutex);
                     data = data_buffer;
                 }
-                port.send(data.data(), 64, usecs);
+                auto ok = port.send(data.data(), 64, usecs);
+                if (!ok) {
+                    std::cerr << "Cannot send frame " << rendered_frames << std::endl;
+                    break;
+                }
                 std::cout << "Sent frame " << rendered_frames << std::endl;
             }
         };

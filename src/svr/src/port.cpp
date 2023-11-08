@@ -54,27 +54,40 @@ auto Port::close() -> void {
     m_serial_port.close();
 }
 
-auto Port::send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> void {
+auto Port::send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> bool {
     m_is_waiting.wait(true);
     for (int i = 0; i < num_bytes; ++i) {
-        m_serial_port.writeData((const char*)start + i, 1);
-        // std::this_thread::sleep_for(std::chrono::microseconds(delay_microseconds));
-        auto time = std::chrono::steady_clock::now();
-        while (true) {
-        double past = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - time).count();
-        if (past >= delay_microseconds)
-            break;
+        for (int line = 0; line < 8; ++line) {
+            auto signal = wait(0.5);
+            if (signal == 0xFE)
+                m_serial_port.writeData((const char*)start + line * 8, 8);
+            else {
+                std::cerr << "Handshake failed: no line request signal (got " << (int)signal << ")" << std::endl;
+                return false;
+            }
         }
+        // // std::this_thread::sleep_for(std::chrono::microseconds(delay_microseconds));
+        // auto time = std::chrono::steady_clock::now();
+        // while (true) {
+        // double past = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - time).count();
+        // if (past >= delay_microseconds)
+        //     break;
+        // }
     }
+    return true;
 }
 
 auto Port::wait(float timeout) -> std::uint8_t {
+    if (m_received.load()) {
+        m_received.store(false);
+        return m_value.load();
+    }
     m_is_waiting.store(true);
     auto time = std::chrono::steady_clock::now();
     while (!m_received.load()) {
         double past = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - time).count();
         if (past >= timeout)
-            return 0xFE;
+            return 0xFD;
     }
     m_is_waiting.store(false);
     auto res = m_value.load();
