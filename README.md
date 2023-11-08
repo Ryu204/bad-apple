@@ -60,6 +60,7 @@ You can try calling the executable and see what parameters must be passed. That 
 # Currently in bad-apple/src/svr
 sudo build/bad-apple-server /dev/ttyUSB0 19200 0.2 0.4 0.7 0.9 -frsc/bad-apple.mp4
 sudo build/bad-apple-server /dev/ttyUSB0 19200 0.2 0.4 0.7 0.9 -frsc/fire.mp4
+sudo build/bad-apple-server /dev/ttyUSB0 19200 0.2 0.4 0.6 0.85 -c
 ```
 
 ## Result
