@@ -29,9 +29,11 @@ It's possible to generate a binary of the firmware. However please note it's onl
 
 Build the firmware:
 
+On Windows most likely CMake will default the generator to Visual Studio, which will discard the sdcc usage. If that's the case you must use something like MinGW Makefiles or Ninja.
+
 ```bash
 # Currently in bad-apple folder
-cmake --preset=base -DCMAKE_C_COMPILER=sdcc --DCMAKE_SYSTEM_NAME=Generic
+cmake --preset=base -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic # -G"MinGW Makefiles"
 cmake --build build
 ```
 
@@ -54,7 +56,7 @@ Once both firmware and server are built, flash the firmware into the microcontro
 
 # Usage
 
-You can try calling the executable and see what parameters must be passed. That part is horrible though. After a long time fiddling around I found some good example:
+You can try calling the executable and see what parameters must be passed. That part is horrible though. After a long time fiddling around I found some good examples:
 
 ```bash
 # Currently in bad-apple/src/svr
@@ -64,5 +66,4 @@ sudo build/bad-apple-server /dev/ttyUSB0 19200 0.2 0.4 0.6 0.85 -c
 ```
 
 ## Result
-
-Coming soon...
+[![Video](https://i.imgur.com/Ik74nzT.png)](https://youtu.be/O3pgFUubkxc)

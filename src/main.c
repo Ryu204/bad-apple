@@ -12,10 +12,10 @@ __sfr __at (0x90) _XPAGE; // P1 becomes high byte indicator for XRAM location
 #define CLOCK_PIN   P3_6
 #define LATCH_PIN   P3_5
 #define ROW_SBIT    P0
-#define COLOR_CNT   0x04
-#define DPL_INT     0xFF
-#define DPL_MTP     0x1D
-#define LINE_DELAY  0x2F
+#define COLOR_CNT   0x04    // Number of brightness levels
+#define DPL_INT     0xFF    // Time interval of timer0 interrupt
+#define DPL_MTP     0x1D    // Number of interrupts before rendering the data
+#define LINE_DELAY  0x2F    // Lit duration of each row
 
 ui8 __pdata display_buffer[128] = {0};
 ui8 display_index = 0;
@@ -36,12 +36,13 @@ inline void init_display() {
     ROW_SBIT = 0xFF;
 }
 
+// Don't call this function directly, it's meant for periodical updates by timer0
 inline void display() {
     rendering = 1;
     pass = pass == COLOR_CNT ? 1 : pass + 1;
     ui8* start = display_index == 0 ? display_buffer + 56 : display_buffer + 120;
     ui8* end = start - 64;
-    // Enable to the first column
+    // Enable the first column
     DATA_PIN = 1;
     CLOCK_PIN = 1; CLOCK_PIN = 0;
     LATCH_PIN = 1; LATCH_PIN = 0;
@@ -63,6 +64,7 @@ inline void display() {
     rendering = 0;
 }
 
+// Immediately render the scene, bypass wait time
 inline void active_display() {
     TR0 = 0;        // Stop interrupt display
     TF0 = 0;
