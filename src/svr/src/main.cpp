@@ -17,8 +17,8 @@
 
 using namespace std::chrono_literals;
 
-Port port;
-std::size_t baud, usecs;
+Port port{8, 8};
+std::size_t baud;
 float threshold[4];
 char* device;
 std::string resource;
@@ -31,6 +31,7 @@ std::array<int, 64> data_big;
 unsigned int shader_program;
 constexpr std::size_t PREVIEW_WIDTH = 640;
 Video::Frame frame_data;
+std::size_t time_per_frame = 1;
 
 std::recursive_mutex matrix_mutex, window_mutex;
 
@@ -115,19 +116,18 @@ void init_opengl() {
 }
 
 bool init(int argc, char* argv[]) {
-    if (argc != 9) {
-        std::cerr << "Invalid arguments. Argument list (9):\nserver <device> <baudrate> <wait_time_us> <brightness_threshold_1/2/3/4> <-f<filename>/-c>" << std::endl;
+    if (argc != 8) {
+        std::cerr << "Invalid arguments. Argument list (8):\nserver <device> <baudrate> <brightness_threshold_1/2/3/4> <-f<filename>/-c>" << std::endl;
         return false;
     }
 
     device = argv[1];
     baud = std::stoi(std::string(argv[2]));
-    usecs = std::stoi(std::string(argv[3]));
-    threshold[0] = std::stof(std::string(argv[4]));
-    threshold[1] = std::stof(std::string(argv[5]));
-    threshold[2] = std::stof(std::string(argv[6]));
-    threshold[3] = std::stof(std::string(argv[7]));
-    resource = argv[8];
+    threshold[0] = std::stof(std::string(argv[3]));
+    threshold[1] = std::stof(std::string(argv[4]));
+    threshold[2] = std::stof(std::string(argv[5]));
+    threshold[3] = std::stof(std::string(argv[6]));
+    resource = argv[7];
     std::cout << "Arguments are valid, process to run..." << std::endl;
     if (!port.open(device, baud)) {
         std::cerr << std::format("Cannot open device {}", device) << std::endl;
@@ -141,6 +141,7 @@ bool init(int argc, char* argv[]) {
     else if (resource.starts_with("-f")) {
         resource.erase(0, 2);
         video = std::make_unique<Video>(VType::FILE, resource.c_str());
+        time_per_frame = 1.F / video->FPmS();
     }
     else {
         std::cout << "Filename or camera use was not specified, use -f or -c" << std::endl;
@@ -157,7 +158,7 @@ bool fetch_image() {
     if (frame_data.empty())
         return false;
     cv::imshow(std::string("Video capture"), frame_data);
-    cv::waitKey(10); // Dummy to keep windows active
+    cv::waitKey(time_per_frame); // Dummy to keep windows active
     return true;
 }
 
@@ -226,13 +227,13 @@ int main(int argc, char* argv[]) {
             std::cout << "Starting communication, waiting for request signal..." << std::endl;
             while (true) {
                 rendered_frames++;
-                auto signal = port.wait(10);
-                if (signal == 0xFD) {
-                    std::cout << "No signal from MCU, stop sending" << std::endl;
+                auto signal = port.last_or_wait(5000.F);
+                if (signal == Port::timeout_code) {
+                    std::cerr << "No signal from MCU, stop sending" << std::endl;
                     break;
                 }
-                if (signal != 0xFF) {
-                    std::cout << "Terminate signal from MCU, stop sending" << std::endl;
+                if (signal != Port::frame_code) {
+                    std::cerr << std::format("Expected frame signal but got {}, stop sending", (int)signal) << std::endl;
                     break;
                 }
                 {
@@ -247,12 +248,12 @@ int main(int argc, char* argv[]) {
                     std::lock_guard lock(matrix_mutex);
                     data = data_buffer;
                 }
-                auto ok = port.send(data.data(), 64, usecs);
+                auto ok = port.send(data.data());
                 if (!ok) {
-                    std::cerr << "Cannot send frame " << rendered_frames << std::endl;
+                    std::cerr << std::format("Cannot send frame {}", rendered_frames) << std::endl;
                     break;
                 }
-                std::cout << "Sent frame " << rendered_frames << std::endl;
+                std::cout << std::format("Sent frame {}", rendered_frames) << std::endl;
             }
         };
 

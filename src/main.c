@@ -1,4 +1,3 @@
-#include "type.h"
 #include <mcs51/8051.h>
 #include <stdint.h>
 #include <string.h>
@@ -18,18 +17,12 @@ __sfr __at (0x90) _XPAGE; // P1 becomes high byte indicator for XRAM location
 #define DPL_MTP     0x1D
 #define LINE_DELAY  0x2F
 
-ui8 __pdata display_buffer[128] = {
-    0,0,0,0,0,0,0,0,
-    0,0,2,2,2,2,0,0,
-    0,2,1,1,1,1,2,2,
-    2,1,1,8,1,8,1,2,
-    2,8,1,1,1,1,1,2,
-    2,1,8,8,8,8,8,2,
-    0,2,1,8,8,8,1,2,
-    0,0,2,2,2,2,2,0
-};
+ui8 __pdata display_buffer[128] = {0};
 ui8 display_index = 0;
 ui8 pass = 0;
+ui8 allow_display = 1;
+ui8 counter = 0;
+ui8 rendering = 0;
 
 inline void init_display() {
     ET0 = 1;                // Enable timer0
@@ -44,6 +37,7 @@ inline void init_display() {
 }
 
 inline void display() {
+    rendering = 1;
     pass = pass == COLOR_CNT ? 1 : pass + 1;
     ui8* start = display_index == 0 ? display_buffer + 56 : display_buffer + 120;
     ui8* end = start - 64;
@@ -66,12 +60,22 @@ inline void display() {
         CLOCK_PIN = 1; CLOCK_PIN = 0;
         LATCH_PIN = 1; LATCH_PIN = 0;
     }
+    rendering = 0;
 }
 
-ui8 counter;
+inline void active_display() {
+    TR0 = 0;        // Stop interrupt display
+    TF0 = 0;
+    display();
+    TR0 = 1;        // Reset interrupt display
+    TL0 = TH0;
+    counter = 1;
+}
+
 void display_interupt() __interrupt (TF0_VECTOR) {
     if (++counter == DPL_MTP) {
-        display();
+        if (allow_display)
+            display();
         counter = 0;
     }
 }
@@ -82,6 +86,10 @@ inline ui8* get_display_buffer() {
 
 inline void swap() {
     display_index = 1 - display_index;
+}
+
+inline void display_setting(ui8 on) {
+    allow_display = on;
 }
 
 /////////////////////////////////////////////////////
@@ -125,14 +133,44 @@ inline ui8 got_line() {
     return line_index >= 8;
 }
 /////////////////////////////////////////////////////
+// Start animation
+/////////////////////////////////////////////////////
+inline void animate() {
+    __code ui8 seg[32] = {
+        1, 1, 1, 1, 1, 1, 1, 1, 
+        2, 2, 2, 2, 2, 2, 2, 2, 
+        3, 3, 3, 3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4
+    };
+    for (int i = 1; i <= 32; ++i) {
+        memcpy(get_display_buffer(), seg, i);
+        swap();
+        P2 = ~P2;
+        for (int j = 0; j < 50; ++j)
+            active_display();
+    }
+}
+inline void init_animation() {
+    EX0 = 1;
+    IT0 = 1;
+    P2 = 0xFF;
+}
+void start_program() __interrupt (IE0_VECTOR) {
+    animate();
+    EX0 = 0;
+    P2 = 0xFF;
+}
+/////////////////////////////////////////////////////
 // Driver function
 /////////////////////////////////////////////////////
 inline void init() {
     EA = 1;
     init_display();
     init_uart();
+    // init_animation(); // Uncomment this line and rebuild to see a short led effect when you press `K3`
     PT0 = 0;        // Display has low priority
     PS = 1;         // Serial has high priority
+    PX0 = 1;        // Animation has high priority but only runs once
 }
 
 void main() {
@@ -142,8 +180,12 @@ void main() {
         memset(buffer, 0, 64);
         send(FRAME_SIGNAL);
         for (ui8 row = 0; row < 8; ++row) {
+            while (rendering != 0);
+            display_setting(0);
             request_line(buffer + row * 8);
             while (!got_line());
+            display_setting(1);
+            active_display();
         }
         swap();
     }
