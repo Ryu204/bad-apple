@@ -1,41 +1,47 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
-#include <functional>
+#include <array>
 #include <mutex>
+#include <string>
 #include <atomic>
-#include <memory>
-
+#include <functional>
+#include <queue>
 #include "CSerialPort/SerialPort.h"
 
 namespace detail {
-    struct ReadListener : itas109::CSerialPortListener {
-            ReadListener(const char* port, itas109::CSerialPort* port_manager);
-            ~ReadListener();
-            template <typename T>
-            void set_callback(T&& fn) {
-                m_callback = [fn = std::forward<T>(fn), this](unsigned int num_bytes) {
-                    fn(m_port_manager, num_bytes);
+    struct Listener : itas109::CSerialPortListener {
+            Listener(itas109::CSerialPort& port);
+            auto onReadEvent(const char* port_name, unsigned int readBufferLen) -> void override;
+            template <typename Func>
+            void set_callback(Func&& func) {
+                m_callback = [func = std::forward<Func>(func)](std::uint8_t data) {
+                    func(data);
                 };
             }
-            void onReadEvent(const char *port, unsigned int num_bytes) override;
         private:
-            const char* m_port_name;
-            std::function<void(unsigned int num_bytes)> m_callback;
-            itas109::CSerialPort* m_port_manager;
+            std::function<void(std::uint8_t)> m_callback;
+            itas109::CSerialPort& m_port;
     };
 }
 
-struct Port {
-        auto open(const char* name, std::size_t baud) -> bool;
+class Port {
+    public:
+        static constexpr std::uint8_t timeout_code = 0xFD;
+        static constexpr std::uint8_t line_code = 0xFE;
+        static constexpr std::uint8_t frame_code = 0xFF;
+        Port(std::size_t col, std::size_t row);
+        auto open(const std::string& name, std::size_t baud) -> bool;
         auto close() -> void;
-        auto send(const void* start, std::size_t num_bytes, std::size_t delay_microseconds) -> void;
-        auto wait(float timeout = 0.F) -> std::uint8_t;
+        auto last_or_wait(float wait_millisecs) -> std::uint8_t;
+        auto send(const std::uint8_t* data) -> bool;
     private:
-        itas109::CSerialPort m_serial_port;
-        std::unique_ptr<detail::ReadListener> m_listener;
-        std::atomic_bool m_is_waiting;
-        std::atomic_char8_t m_value;
-        std::atomic_bool m_received;
-}; 
+        using Data = std::uint8_t;
+        itas109::CSerialPort m_port{};
+        detail::Listener m_listener{m_port};
+        std::queue<Data> m_received{};
+        std::recursive_mutex m_queue_mutex{};
+
+        std::size_t m_column;
+        std::size_t m_row;
+};

@@ -15,6 +15,7 @@ struct Video {
         ~Video();
         Frame get();
         void get_size(std::size_t* width, std::size_t* height);
+        auto FPmS() -> float const;
     private:
         cv::VideoCapture m_video;
 };

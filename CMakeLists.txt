@@ -21,15 +21,7 @@ endif()
 
 # Grab all *.c file in source folder to compile
 set(${PROJECT_NAME}_SOURCE 
-    "src/main.c"
-    "src/type.h"
-    "src/monitor.h"
-    "src/monitor.c"
-    "src/common.h"
-    "src/vga.h"
-    "src/vga.c"
-    "src/receive.h"
-    "src/receive.c")
+    "src/main.c")
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE})
 
 # Local directories

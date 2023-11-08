@@ -15,7 +15,7 @@ Video::Video(VType type, const char* name) {
         if (m_video.open(name))
             std::cout << "Opened video " << name << std::endl;
         else
-            std::cout << std::format("Cannot open video \"{}\"", name) << std::endl;
+            std::cerr << std::format("Cannot open video \"{}\"", name) << std::endl;
     }
 }
 
@@ -38,4 +38,8 @@ Video::Frame Video::get() {
 void Video::get_size(std::size_t* width, std::size_t* height) {
     *width = m_video.get(cv::CAP_PROP_FRAME_WIDTH);
     *height = m_video.get(cv::CAP_PROP_FRAME_HEIGHT);
+}
+
+auto Video::FPmS() -> float const {
+    return m_video.get(cv::CAP_PROP_FPS) / 1000.F;
 }
