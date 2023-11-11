@@ -1,3 +1,11 @@
+/////////////////////////////////////////////////////
+//
+// bad-apple on STC89C52 microcontroller
+// Copyright (C) 2023 Nguyen Anh Bao (nguyenanhbao2356@gmail.com)
+// The source code is delivered under MIT license.
+//
+/////////////////////////////////////////////////////
+
 #pragma once
 
 #include <memory>
