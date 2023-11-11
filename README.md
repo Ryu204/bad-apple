@@ -13,7 +13,7 @@ The server will process video footage (including camera capture) and send data t
 
 ## Requirements
 
-* `SDCC` (Small Device C Compiler)
+* `SDCC` (Small Device C Compiler) version `4.2` or higher
 * `CMake` version 3.23 or higher
 * C++ compiler capable of `c++20` standard
 
@@ -22,6 +22,7 @@ The server will process video footage (including camera capture) and send data t
 * [OpenCV](https://github.com/opencv/opencv)
 * [SFML](https://github.com/SFML/SFML)
 * [CSerialPort](https://github.com/itas109/CSerialPort)
+* glad - an OpenGL loader (files included in source code)
 
 ## Build
 
@@ -29,11 +30,11 @@ It's possible to generate a binary of the firmware. However please note it's onl
 
 Build the firmware:
 
-On Windows most likely CMake will default the generator to Visual Studio, which will discard the sdcc usage. If that's the case you must use something like MinGW Makefiles or Ninja.
+On Windows most likely CMake will default the generator to Visual Studio, which will disregard the sdcc usage. If that's the case you must use something like MinGW Makefiles or Ninja.
 
 ```bash
 # Currently in bad-apple folder
-cmake --preset=base -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic # -G"MinGW Makefiles"
+cmake --preset=base -DCMAKE_C_COMPILER=sdcc -DCMAKE_SYSTEM_NAME=Generic # -G"MinGW Makefiles" or -G"Ninja"
 cmake --build build
 ```
 
@@ -54,9 +55,16 @@ You may have to provide environment variables to CMake, such as `SFML_DIR` or so
 
 Once both firmware and server are built, flash the firmware into the microcontroller using external tools. [stcgal](https://github.com/grigorig/stcgal) did the job for me.
 
+**Important:** In order for the firmware to behave correctly, you must enable **6T double-speed** mode of the microcontroller via the flasher tool.
+
 # Usage
 
-You can try calling the executable and see what parameters must be passed. That part is horrible though. After a long time fiddling around I found some good examples:
+You can try calling the executable and see what parameters must be passed. That part is horrible though. Some things you would like to note:
+* The configurations of `timer1` in source code were calculated so the perfect baud rate is `19200 bps`.
+* Brightness thresholds must be 4 numbers between 0 and 1 in increasing order.
+* The last parameter can be either `-c` (open camera) or `-f<file_name>` (open video).
+
+After a long time fiddling around I found some good examples:
 
 ```bash
 # Currently in bad-apple/src/svr
@@ -67,3 +75,8 @@ sudo build/bad-apple-server /dev/ttyUSB0 19200 0.2 0.4 0.6 0.85 -c
 
 ## Result
 [![Video](https://i.imgur.com/Ik74nzT.png)](https://youtu.be/O3pgFUubkxc)
+
+
+## Known limitations
+* If the video source is too small, the texture on preview window won't be created correctly.
+* Software's source code is a mix of ketchup and spaghetti, should not be further inspected in any case.
